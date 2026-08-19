@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+.ipynb_checkpoints/
+*.ipynb
+*.pt
+*.onnx
+*.safetensors
+*.engine
+*.weights
+frames/
+logs/
+.DS_Store

@@ -1,0 +1,5 @@
+fastapi>=0.110,<1
+uvicorn[standard]>=0.29,<1
+opencv-python-headless>=4.9,<5
+numpy>=1.26,<3
+requests>=2.31,<3

@@ -1,0 +1,10 @@
+[project]
+name = "trinetra-vision"
+version = "1.0.0"
+description = "Complete Python Google Colab AI safety system for Trinetra Vision"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
