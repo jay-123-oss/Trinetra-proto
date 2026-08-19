@@ -22,6 +22,21 @@ class SafetyEngine:
     def __init__(self, settings: Settings) -> None:
         self.config = SafetyConfig.from_settings(settings)
 
+    @staticmethod
+    def degraded(reason: str, *, camera_error: bool = False) -> SafetyState:
+        return SafetyState(
+            risk_level=RiskLevel.CAUTION,
+            hazard="camera_unavailable" if camera_error else "perception_unavailable",
+            confidence=0.0,
+            distance_m=None,
+            distance_confidence=0.0,
+            direction="unknown",
+            severity="medium",
+            recommended_action="be_careful",
+            message="Camera unavailable. Proceed carefully." if camera_error else "Perception unavailable. Proceed carefully.",
+            reason=reason,
+        )
+
     def decide(self, detections: list[Detection], hazards: list[Hazard]) -> SafetyState:
         # The fast path is independent of VLM and cannot be downgraded later.
         immediate = [d for d in detections if d.path_relevance >= 0.55 and d.distance_m is not None and d.distance_m <= self.config.emergency_distance_m and (d.collision_risk >= 0.45 or d.confidence >= 0.70)]

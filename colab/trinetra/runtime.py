@@ -13,7 +13,7 @@ from .frame_buffer import LatestFrameBuffer
 from .fusion import FusionEngine
 from .hazards import GroundHazardEngine, HazardEngine
 from .metrics import Metrics
-from .models import FrameAnalysis, RiskLevel, VLMResult
+from .models import FrameAnalysis, RiskLevel, SafetyState, VLMResult
 from .motion import MotionEngine
 from .preprocess import FrameProcessor
 from .risk import RiskEngine
@@ -122,6 +122,7 @@ class TrinetraRuntime:
                 logger.exception("inference loop frame failure")
                 analysis = FrameAnalysis.empty(error=str(exc))
                 analysis.frame_id = frame.frame_id
+                analysis.safety = self.safety.degraded(str(exc))
                 analysis.system_state = "DEGRADED"
             with self._result_lock:
                 self._latest = analysis
@@ -131,7 +132,14 @@ class TrinetraRuntime:
         processed, quality = self.processor.process(frame)
         if not quality.valid:
             self._system_state = "DEGRADED"
-            return FrameAnalysis(datetime.now(timezone.utc).isoformat(), frame.frame_id, quality, system_state="DEGRADED", error=quality.error)
+            return FrameAnalysis(
+                datetime.now(timezone.utc).isoformat(),
+                frame.frame_id,
+                quality,
+                safety=self.safety.degraded(quality.error or "invalid frame", camera_error=True),
+                system_state="DEGRADED",
+                error=quality.error,
+            )
 
         stage: dict[str, float] = {}
         start = time.perf_counter()
@@ -144,6 +152,21 @@ class TrinetraRuntime:
             self._system_state = "YOLO_ERROR"
         else:
             yolo_error = None
+        if yolo_error:
+            degraded = self.safety.degraded(yolo_error)
+            alert = self.alerts.evaluate(degraded)
+            self._system_state = "YOLO_ERROR"
+            self.metrics.system_state = self._system_state
+            return FrameAnalysis(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                frame_id=frame.frame_id,
+                frame_quality=quality,
+                safety=degraded,
+                alert=alert,
+                performance={"yolo_latency_ms": yolo_latency, "total_latency_ms": (time.perf_counter() - total_start) * 1000.0},
+                system_state=self._system_state,
+                error=yolo_error,
+            )
         stage["yolo_latency_ms"] = yolo_latency
         tracked_start = time.perf_counter()
         tracked = self.tracker.update(detections)
@@ -165,7 +188,7 @@ class TrinetraRuntime:
         if trigger:
             self.metrics.vlm_triggers += 1
             self.vlm.submit(processed, preliminary, risk_detections)
-        vlm_result = self.vlm.latest()
+        vlm_result = self.vlm.latest_for(frame.frame_id)
         fused = self.fusion.fuse(hazard_list, vlm_result)
         final_safety = self.safety.decide(risk_detections, fused)
         alert = self.alerts.evaluate(final_safety, track_id=self._track_id(risk_detections, final_safety.hazard))

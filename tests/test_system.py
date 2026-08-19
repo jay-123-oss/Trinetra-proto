@@ -132,6 +132,37 @@ def test_dashboard_websocket_and_settings_endpoints():
             assert update["type"] in {"safety", "metrics", "alert"}
 
 
+def test_degraded_safety_is_not_false_safe():
+    from colab.trinetra.safety import SafetyEngine
+    state = SafetyEngine.degraded("yolo failed")
+    assert state.risk_level == RiskLevel.CAUTION
+    assert state.hazard == "perception_unavailable"
+    assert state.recommended_action == "be_careful"
+
+
+def test_invalid_frame_is_not_false_safe_in_runtime():
+    from colab.trinetra.runtime import TrinetraRuntime
+    runtime = TrinetraRuntime(FakeYolo(), None, Settings())
+    runtime.start()
+    try:
+        frame_id = runtime.submit_frame(object())
+        deadline = time.monotonic() + 1.0
+        while time.monotonic() < deadline and runtime.latest_analysis().frame_id != frame_id:
+            time.sleep(0.01)
+        analysis = runtime.latest_analysis()
+        assert analysis.system_state == "DEGRADED"
+        assert analysis.safety.risk_level == RiskLevel.CAUTION
+    finally:
+        runtime.stop()
+
+
+def test_stale_vlm_result_is_not_returned_for_a_new_frame():
+    manager = VLMTriggerManager(None, Settings())
+    manager._latest.frame_id = 1
+    assert manager.latest_for(10).used is False
+    manager.stop()
+
+
 def test_yolo_failure_is_catchable_at_engine_boundary():
     engine = YoloEngine(BrokenYolo(), Settings())
     frame = Frame(1, np.zeros((10, 10, 3), dtype=np.uint8), 1.0, 10, 10, "square")

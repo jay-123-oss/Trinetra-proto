@@ -70,6 +70,13 @@ class VLMTriggerManager:
         with self._condition:
             return self._latest
 
+    def latest_for(self, frame_id: int, *, max_age_frames: int = 2) -> VLMResult:
+        with self._condition:
+            result = self._latest
+            if result.frame_id is None or frame_id - result.frame_id > max_age_frames:
+                return VLMResult()
+            return result
+
     def stop(self) -> None:
         with self._condition:
             self._stop = True
