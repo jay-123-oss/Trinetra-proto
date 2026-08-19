@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import time
 
-import numpy as np
+try:
+    import cv2  # noqa: F401
+    import numpy as np
+except ImportError as exc:
+    raise SystemExit(
+        "Missing demo dependency. Activate your venv and run: "
+        "python -m pip install -r colab/requirements.txt"
+    ) from exc
 
 from colab.trinetra.config import Settings
 from colab.trinetra.runtime import TrinetraRuntime

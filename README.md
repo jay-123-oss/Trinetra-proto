@@ -209,6 +209,31 @@ python demo.py
 
 This mode validates control flow only. Real-world accuracy, false positives, false negatives, alert delay, VLM trigger frequency, and latency must be measured using actual phone-camera scenarios.
 
+## Windows VS Code setup
+
+Open the repository in VS Code and use the integrated PowerShell terminal:
+
+```powershell
+python -m venv venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r colab\requirements.txt
+```
+
+The requirements file includes NumPy, OpenCV, pytest, and the `httpx2` compatibility package required by the current Starlette TestClient. Always install the requirements before running `demo.py`; otherwise the demo cannot decode frames and will intentionally stop with a clear missing-dependency message.
+
+Run checks from the activated environment:
+
+```powershell
+python -m pytest -q
+python -m compileall -q colab backend demo.py run.py scripts
+python demo.py
+python scripts\benchmark.py
+```
+
+If a virtual environment was created with a different Python version, delete the `venv` directory and recreate it with the Python version you intend to use. VS Code must also select the interpreter at `venv\Scripts\python.exe`.
+
 ## Startup options
 
 In the existing Colab notebook, use the injected-model path shown above. For a reusable process, set a provider function that returns the already-loaded `(yolo_model, vlm_model)` tuple:
