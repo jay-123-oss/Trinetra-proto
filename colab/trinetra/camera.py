@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from typing import Any
 
 from .frame_buffer import LatestFrameBuffer
 from .metrics import Metrics
@@ -23,6 +24,8 @@ class MjpegCamera:
         self._error: str | None = None
         self.connected = False
         self.frames_received = 0
+        self._image_lock = threading.Lock()
+        self._latest_image: Any | None = None
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -45,6 +48,18 @@ class MjpegCamera:
     @property
     def status(self) -> str:
         return "CONNECTED" if self.connected else "CAMERA_ERROR" if self._error else "DISCONNECTED"
+
+    def latest_jpeg(self) -> bytes | None:
+        with self._image_lock:
+            image = self._latest_image
+        if image is None:
+            return None
+        try:
+            import cv2
+            ok, encoded = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), 78])
+            return encoded.tobytes() if ok else None
+        except Exception:
+            return None
 
     def _run(self) -> None:
         try:
@@ -69,6 +84,8 @@ class MjpegCamera:
                     self._last_frame_s = now
                     height, width = image.shape[:2]
                     orientation = "landscape" if width > height else "portrait" if height > width else "square"
+                    with self._image_lock:
+                        self._latest_image = image
                     self.buffer.publish(image, captured_at=now, width=width, height=height, orientation=orientation)
                     self.metrics.record_camera(fps)
                     self.frames_received += 1

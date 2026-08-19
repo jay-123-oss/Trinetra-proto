@@ -64,7 +64,10 @@ FASTAPI /health /analyze /metrics
 | `colab/trinetra/server.py` | FastAPI `/health`, `/analyze`, `/metrics`. |
 | `colab/run_server.py` | Colab integration entry point. |
 | `demo.py` | Optional local/debug frame injection mode. |
-| `tests/` | Automated safety, parsing, API, threading, and failure tests. |
+| `backend/` | Production-style backend facade for the persistent Colab runtime. |
+| `frontend/` | Static responsive browser dashboard served by FastAPI. |
+| `scripts/benchmark.py` | Runtime benchmark with injected fake adapters. |
+| `tests/` | Automated safety, parsing, API, WebSocket, frontend-contract, and failure tests. |
 
 ## Colab startup
 
@@ -160,6 +163,30 @@ Example analysis response:
 
 `/analyze` reads the latest cached result. It does not start another camera or model inference for each HTTP request.
 
+## Browser dashboard
+
+The FastAPI process serves the static dashboard at `/`. Open the same public tunnel base URL in a browser after starting the server:
+
+```text
+https://<tunnel-host>/
+```
+
+The dashboard maintains safety state, detections, alerts, metrics, pipeline status, and camera state without reloading the page. It uses `/ws` for low-latency safety, alert, metrics, and system-state updates, with REST polling as a fallback. The backend owns the single camera connection and exposes the cached frame relay at `/stream`; the browser never processes the phone MJPEG stream directly.
+
+Additional endpoints are available for the dashboard:
+
+```text
+POST /camera/start
+POST /camera/stop
+POST /camera/config     {"url": "http://PHONE_IP:8080/video"}
+POST /settings
+GET  /events
+GET  /stream
+GET  /ws
+```
+
+The frontend is deliberately lightweight HTML/CSS/JavaScript, responsive on desktop and mobile, high-contrast, keyboard-friendly, and uses text alongside color for every safety state. Debug overlays are optional and disabled by default.
+
 ## Configuration
 
 The main settings are configurable with environment variables, including `TRINETRA_CAMERA_URL`, `TRINETRA_YOLO_CONFIDENCE`, `TRINETRA_PROCESSING_FPS`, `TRINETRA_VLM_MIN_INTERVAL_MS`, `TRINETRA_EMERGENCY_DISTANCE_M`, `TRINETRA_DANGER_DISTANCE_M`, `TRINETRA_WARNING_DISTANCE_M`, `TRINETRA_ALERT_COOLDOWN_S`, `TRINETRA_API_HOST`, `TRINETRA_API_PORT`, and `TRINETRA_DEBUG`.
@@ -170,7 +197,8 @@ Run automated tests and syntax checks:
 
 ```bash
 python -m pytest -q
-python -m compileall -q colab demo.py
+python -m compileall -q colab backend demo.py run.py scripts
+python scripts/benchmark.py
 ```
 
 Use the optional demo mode for fake frames and adapter checks without loading any model weights:
@@ -180,6 +208,17 @@ python demo.py
 ```
 
 This mode validates control flow only. Real-world accuracy, false positives, false negatives, alert delay, VLM trigger frequency, and latency must be measured using actual phone-camera scenarios.
+
+## Startup options
+
+In the existing Colab notebook, use the injected-model path shown above. For a reusable process, set a provider function that returns the already-loaded `(yolo_model, vlm_model)` tuple:
+
+```bash
+export TRINETRA_MODEL_PROVIDER=my_models:loaded_models
+python run.py
+```
+
+The provider must reuse the working Colab model objects. `run.py` never downloads or initializes model weights. With the camera URL configured, the server prints the API base and serves the dashboard at the same URL.
 
 ## Explicit non-goals
 

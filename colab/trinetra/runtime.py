@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from collections import deque
 from datetime import datetime, timezone
 from typing import Any
 
@@ -51,6 +52,8 @@ class TrinetraRuntime:
         self._last_processed_s: float | None = None
         self._system_state = "INITIALIZING"
         self.camera = None
+        self._events = deque(maxlen=50)
+        self._events_lock = threading.Lock()
 
     def attach_camera(self, camera) -> None:
         self.camera = camera
@@ -103,6 +106,10 @@ class TrinetraRuntime:
 
     def metrics_snapshot(self) -> dict[str, Any]:
         return self.metrics.snapshot(dropped_frames=self.buffer.dropped_count, gpu_memory=self._gpu_memory())
+
+    def events(self) -> list[dict[str, Any]]:
+        with self._events_lock:
+            return list(self._events)
 
     def _run(self) -> None:
         while not self._stop.is_set():
@@ -171,6 +178,9 @@ class TrinetraRuntime:
         stage["total_latency_ms"] = (time.perf_counter() - total_start) * 1000.0
         stage["network_latency_ms"] = max(0.0, (time.monotonic() - processed.captured_at) * 1000.0)
         self.metrics.record(stage)
+        if alert.should_alert:
+            with self._events_lock:
+                self._events.appendleft(alert.to_dict())
         if vlm_result.used:
             self.metrics.vlm_calls = self.vlm.calls
         self._system_state = "DEGRADED" if yolo_error or vlm_result.error else final_safety.risk_level.value

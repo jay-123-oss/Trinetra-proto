@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trinetra Vision AI</title>
+  <meta name="description" content="Trinetra Vision AI safety monitoring dashboard">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">T</div>
+        <div><div class="brand-name">TRINETRA</div><div class="brand-subtitle">AI VISION SAFETY SYSTEM</div></div>
+      </div>
+      <div class="header-status" aria-live="polite"><span class="status-dot" id="systemDot"></span><span id="systemStatus">CONNECTING</span><span class="mono muted" id="clock">--:--:--</span></div>
+      <button class="icon-button" id="settingsToggle" aria-label="Open settings" title="Settings">☷</button>
+    </header>
+
+    <main class="dashboard-grid">
+      <section class="camera-card panel-card" aria-labelledby="cameraTitle">
+        <div class="panel-heading"><div><span class="eyebrow">01 / LIVE FEED</span><h1 id="cameraTitle">Camera monitor</h1></div><div class="live-pill"><span class="live-dot"></span> LIVE</div></div>
+        <div class="camera-stage" id="cameraStage">
+          <img id="cameraStream" src="" alt="Live phone camera stream" class="camera-image">
+          <div class="camera-placeholder" id="cameraPlaceholder"><div class="placeholder-icon">◉</div><strong>Waiting for camera</strong><span>Configure the phone MJPEG URL to begin</span></div>
+          <div class="debug-overlay hidden" id="debugOverlay"><span>DEBUG OVERLAY</span><span id="debugFrame">FRAME --</span></div>
+        </div>
+        <div class="camera-toolbar"><button class="btn btn-primary" id="startCamera">START</button><button class="btn btn-ghost" id="stopCamera">STOP</button><button class="btn btn-ghost" id="pauseCamera">PAUSE</button><button class="btn btn-ghost" id="debugToggle">DEBUG</button><span class="toolbar-spacer"></span><span class="camera-state" id="cameraState">CAMERA: DISCONNECTED</span></div>
+      </section>
+
+      <section class="safety-card panel-card" aria-labelledby="safetyTitle">
+        <div class="panel-heading"><div><span class="eyebrow">02 / SAFETY STATE</span><h2 id="safetyTitle">Current decision</h2></div><span class="state-chip" id="stateChip">SAFE</span></div>
+        <div class="risk-display" id="riskDisplay"><div class="risk-label">CURRENT RISK</div><div class="risk-level" id="riskLevel">SAFE</div><div class="risk-message" id="riskMessage">Path clear.</div></div>
+        <div class="safety-facts"><div class="fact"><span class="fact-label">HAZARD</span><strong id="hazardValue">—</strong></div><div class="fact"><span class="fact-label">DISTANCE</span><strong id="distanceValue">—</strong></div><div class="fact"><span class="fact-label">DIRECTION</span><strong id="directionValue">—</strong></div><div class="fact"><span class="fact-label">ACTION</span><strong id="actionValue">CONTINUE</strong></div></div>
+        <div class="ai-readiness"><div><span class="readiness-dot ready"></span> CAMERA <b id="cameraReady">OFFLINE</b></div><div><span class="readiness-dot ready"></span> YOLO <b id="yoloReady">READY</b></div><div><span class="readiness-dot ready"></span> VLM <b id="vlmReady">READY</b></div><div><span class="readiness-dot ready"></span> GPU <b id="gpuReady">CHECKING</b></div></div>
+      </section>
+
+      <section class="pipeline-card panel-card" aria-labelledby="pipelineTitle"><div class="panel-heading"><div><span class="eyebrow">03 / PERCEPTION PIPELINE</span><h2 id="pipelineTitle">System flow</h2></div><span class="mono muted" id="pipelineState">INITIALIZING</span></div><div class="pipeline-flow" id="pipelineFlow"><div class="pipe-step active"><span>CAMERA</span><small>INPUT</small></div><i>→</i><div class="pipe-step"><span>YOLO</span><small>PERCEPTION</small></div><i>→</i><div class="pipe-step"><span>TRACK</span><small>MOTION</small></div><i>→</i><div class="pipe-step"><span>SPATIAL</span><small>DISTANCE</small></div><i>→</i><div class="pipe-step"><span>RISK</span><small>ANALYSIS</small></div><i>→</i><div class="pipe-step"><span>VLM</span><small>VERIFY</small></div><i>→</i><div class="pipe-step"><span>SAFETY</span><small>DECISION</small></div></div></section>
+
+      <section class="alerts-card panel-card" aria-labelledby="alertsTitle"><div class="panel-heading"><div><span class="eyebrow">04 / EVENT LOG</span><h2 id="alertsTitle">Priority alerts</h2></div><span class="count-badge" id="alertCount">0</span></div><div class="alert-list" id="alertList"><div class="empty-state">No priority events yet.</div></div></section>
+
+      <section class="detections-card panel-card" aria-labelledby="detectionsTitle"><div class="panel-heading"><div><span class="eyebrow">05 / OBJECT TRACKING</span><h2 id="detectionsTitle">Safety-relevant objects</h2></div><span class="mono muted" id="trackCount">0 ACTIVE</span></div><div class="detection-list" id="detectionList"><div class="empty-state">No tracked objects.</div></div></section>
+
+      <section class="metrics-card panel-card" aria-labelledby="metricsTitle"><div class="panel-heading"><div><span class="eyebrow">06 / PERFORMANCE</span><h2 id="metricsTitle">Runtime telemetry</h2></div><span class="mono muted">ROLLING</span></div><div class="metric-grid"><div class="metric"><span>CAMERA FPS</span><strong id="cameraFps">—</strong></div><div class="metric"><span>AI FPS</span><strong id="processingFps">—</strong></div><div class="metric"><span>YOLO LATENCY</span><strong id="yoloLatency">—</strong></div><div class="metric"><span>VLM LATENCY</span><strong id="vlmLatency">—</strong></div><div class="metric"><span>TOTAL LATENCY</span><strong id="totalLatency">—</strong></div><div class="metric"><span>DROPPED FRAMES</span><strong id="droppedFrames">—</strong></div><div class="metric"><span>GPU MEMORY</span><strong id="gpuMemory">—</strong></div><div class="metric"><span>ACTIVE TRACKS</span><strong id="activeTracks">—</strong></div></div></section>
+    </main>
+  </div>
+
+  <aside class="settings-drawer" id="settingsDrawer" aria-label="Settings" aria-hidden="true"><div class="drawer-header"><div><span class="eyebrow">SYSTEM CONFIG</span><h2>Settings</h2></div><button class="icon-button" id="settingsClose" aria-label="Close settings">×</button></div><form id="settingsForm"><label>Phone MJPEG URL<input type="url" id="cameraUrl" placeholder="http://PHONE_IP:8080/video" autocomplete="off"></label><label>YOLO confidence<input type="number" id="yoloConfidence" min="0" max="1" step="0.01" value="0.25"></label><label>Processing FPS<input type="number" id="processingFps" min="1" max="60" step="1" value="15"></label><label>VLM interval (ms)<input type="number" id="vlmInterval" min="250" step="250" value="1000"></label><label>Warning distance (m)<input type="number" id="warningDistance" min="0.1" step="0.1" value="1.8"></label><label>Danger distance (m)<input type="number" id="dangerDistance" min="0.1" step="0.1" value="0.9"></label><label>Alert cooldown (s)<input type="number" id="alertCooldown" min="0" step="0.5" value="2"></label><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="debugMode"><label class="form-check-label" for="debugMode">Debug visualization</label></div><button class="btn btn-primary w-100" type="submit">SAVE SETTINGS</button><p class="drawer-note" id="settingsNote">Settings are sent to the backend. Safety decisions remain backend-controlled.</p></form></aside>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <script src="js/app.js" type="module"></script>
+</body>
+</html>

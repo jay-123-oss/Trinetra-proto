@@ -114,6 +114,24 @@ def test_fastapi_health_and_analyze_endpoints():
         assert "risk_level" in analysis.json()
 
 
+def test_dashboard_websocket_and_settings_endpoints():
+    from fastapi.testclient import TestClient
+    from colab.trinetra.runtime import TrinetraRuntime
+    from colab.trinetra.server import create_app
+    runtime = TrinetraRuntime(FakeYolo(), None, Settings())
+    app = create_app(runtime)
+    with TestClient(app) as client:
+        page = client.get("/")
+        assert page.status_code == 200
+        assert "TRINETRA" in page.text
+        settings = client.post("/settings", json={"warning_distance_m": 2.1, "debug": True})
+        assert settings.status_code == 200
+        assert settings.json()["status"] == "saved"
+        with client.websocket_connect("/ws") as socket:
+            update = socket.receive_json()
+            assert update["type"] in {"safety", "metrics", "alert"}
+
+
 def test_yolo_failure_is_catchable_at_engine_boundary():
     engine = YoloEngine(BrokenYolo(), Settings())
     frame = Frame(1, np.zeros((10, 10, 3), dtype=np.uint8), 1.0, 10, 10, "square")
